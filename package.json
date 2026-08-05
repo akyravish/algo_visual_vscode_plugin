@@ -1,0 +1,26 @@
+{
+  "name": "algo-visual",
+  "displayName": "Algo Visual",
+  "description": "Animate array/sorting algorithms from the active JavaScript file",
+  "version": "0.0.1",
+  "publisher": "local",
+  "private": true,
+  "engines": {
+    "vscode": "^1.80.0"
+  },
+  "categories": [
+    "Visualization"
+  ],
+  "main": "./extension.js",
+  "scripts": {
+    "test": "node test.js"
+  },
+  "contributes": {
+    "commands": [
+      {
+        "command": "algoVisual.show",
+        "title": "Algo Visual: Show"
+      }
+    ]
+  }
+}
