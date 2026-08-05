@@ -6,6 +6,7 @@ const scrub = document.getElementById("scrub");
 const speed = document.getElementById("speed");
 const playBtn = document.getElementById("play");
 const modeBtn = document.getElementById("mode");
+const restartBtn = document.getElementById("restart");
 
 let frames = [];
 let cur = 0;
@@ -457,6 +458,11 @@ function load(code) {
 }
 
 playBtn.onclick = play;
+restartBtn.onclick = () => {
+  stop();
+  cur = 0;
+  render();
+};
 modeBtn.onclick = () => {
   byLine = !byLine;
   modeBtn.textContent = byLine ? "By line" : "By access";

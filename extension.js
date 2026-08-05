@@ -133,135 +133,179 @@ function html(webview, extensionUri) {
 <meta charset="utf-8">
 <meta http-equiv="Content-Security-Policy" content="${csp}">
 <style>
-  /* Labels are chrome: tiny, tracked, quiet. Values are the content: mono and loud.
-     Tiles carry no border by default — a border means the code touched this cell. */
+  /* Labels are chrome: tiny, tracked, quiet. Values are the content: mono, loud,
+     tabular. Tiles carry no border at rest — a border or glow means the code
+     touched this cell, and nothing else is allowed to glow. */
   :root {
-    --tile: rgba(127, 127, 127, .16);
-    --slab: rgba(127, 127, 127, .07);
-    --rule: rgba(127, 127, 127, .28);
-    --read: #4a9eda;
-    --write: #e0705a;
-    --key: #c08a3e;
+    --tile: color-mix(in srgb, var(--vscode-foreground) 9%, transparent);
+    --tile-edge: color-mix(in srgb, var(--vscode-foreground) 7%, transparent);
+    --slab: color-mix(in srgb, var(--vscode-foreground) 4%, transparent);
+    --rule: color-mix(in srgb, var(--vscode-foreground) 22%, transparent);
+    --ink: var(--vscode-foreground);
+    --read: #58a6e8;
+    --write: #e8785e;
+    --key: #d29a4a;
+    --ok: #58ba7d;
   }
   * { box-sizing: border-box; }
   body {
-    margin: 0; padding: 18px 18px 0;
+    margin: 0; padding: 20px 20px 0;
     font-family: var(--vscode-font-family);
-    color: var(--vscode-foreground);
+    color: var(--ink);
   }
 
-  .label, .fname, .idx, .rowlabel, .void, #status {
-    font-size: 10px; font-weight: 600;
-    letter-spacing: .09em; text-transform: uppercase;
+  .label, .fname, .idx, .rowlabel, #status, #controls label {
+    font-size: 9.5px; font-weight: 650;
+    letter-spacing: .11em; text-transform: uppercase;
   }
-  .tile, .val {
+  .tile, .val, .step {
     font-family: var(--vscode-editor-font-family);
     font-variant-numeric: tabular-nums;
-    font-size: 16px; line-height: 1;
   }
 
-  /* the stack, drawn as containment */
-  #stage { display: flex; flex-direction: column; gap: 10px; padding-bottom: 18px; }
+  /* ---- the stack, drawn as containment ---- */
+  #stage { display: flex; flex-direction: column; gap: 14px; padding-bottom: 20px; }
   .slab { display: flex; flex-direction: column; gap: 14px; }
-  /* structures sit side by side and wrap, so a wide panel is a wide diagram */
+  .slab.nested {
+    padding: 12px 14px 14px 16px;
+    border-left: 2px solid var(--ok);
+    background: var(--slab);
+    border-radius: 4px 10px 10px 4px;
+  }
+  .slab.dim { opacity: .38; filter: saturate(.6); transition: opacity .25s, filter .25s; }
+  .fname { color: var(--ok); letter-spacing: .14em; }
+  .fname::before { content: "▸ "; opacity: .7; }
+
   .structs {
     display: flex; flex-wrap: wrap; align-items: flex-start; align-content: flex-start;
-    gap: 16px 28px;
+    gap: 18px 30px;
   }
   .structs:empty, .strip:empty { display: none; }
-  .slab.dim { opacity: .45; transition: opacity .2s; }
-  .slab.nested {
-    padding: 10px 0 12px 14px;
-    border-left: 2px solid var(--rule);
-    background: var(--slab);
-    border-radius: 0 6px 6px 0;
-  }
-  .fname { opacity: .5; letter-spacing: .12em; }
-  .block.enter, .chip.enter { animation: rise .28s ease-out; }
-  .label { opacity: .55; margin-bottom: 6px; }
+  .block.enter, .chip.enter { animation: rise .3s cubic-bezier(.2, .9, .3, 1.3); }
+  .label { opacity: .5; margin-bottom: 7px; }
 
-  .row { display: flex; gap: 5px; flex-wrap: wrap; align-items: flex-start; margin-bottom: 3px; }
+  /* ---- cells ---- */
+  .row { display: flex; gap: 5px; flex-wrap: wrap; align-items: flex-start; }
   .col { display: flex; flex-direction: column; }
   .tile {
-    min-width: 44px; padding: 11px 9px; text-align: center;
-    background: var(--tile); border: 1px solid transparent; border-radius: 5px;
+    min-width: 46px; padding: 12px 10px; text-align: center;
+    font-size: 16.5px; line-height: 1;
+    background: linear-gradient(var(--tile-edge), var(--tile));
+    border: 1px solid transparent; border-radius: 7px;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, .18);
   }
-  .idx { text-align: center; opacity: .4; padding-top: 4px; letter-spacing: .05em; }
+  .idx { text-align: center; opacity: .38; padding-top: 5px; letter-spacing: .06em; }
 
-  /* map and object: key sits on its value, one object in two halves */
+  /* map and object: the key sits on its value, one object in two halves */
   .pair .tile:first-child {
-    background: var(--key); color: #17140f; border-radius: 5px 5px 0 0;
+    background: linear-gradient(color-mix(in srgb, var(--key) 92%, white), var(--key));
+    color: #201a10; font-weight: 650; font-size: 14px;
+    border-radius: 7px 7px 0 0; padding: 9px 10px;
   }
-  .pair .tile:last-child { border-radius: 0 0 5px 5px; margin-top: 1px; }
+  .pair .tile:last-child { border-radius: 0 0 7px 7px; margin-top: 1px; }
 
-  .rowlabel { min-width: 16px; padding: 14px 6px 0 0; text-align: right; opacity: .4; }
-  /* an empty slot is a tile-shaped hole, so indices stay aligned across the row */
+  .rowlabel { min-width: 18px; padding: 15px 7px 0 0; text-align: right; opacity: .38; }
   .void {
-    min-width: 44px; height: 38px;
-    border: 1px dashed var(--rule); border-radius: 5px; opacity: .4;
+    min-width: 46px; height: 41px;
+    border: 1.5px dashed var(--rule); border-radius: 7px; opacity: .45;
+    box-shadow: none; background: none;
   }
-  .row.grid .void { height: 30px; }
-  /* grid rows stack, so they get to be shorter than a standalone array */
-  .row.grid { margin-bottom: 1px; }
-  .row.grid .tile { padding: 7px 9px; font-size: 14px; }
-  .row.grid .rowlabel { padding-top: 10px; }
+  .row.grid { margin-bottom: 2px; }
+  .row.grid .tile { padding: 8px 10px; font-size: 14px; }
+  .row.grid .void { height: 32px; }
+  .row.grid .rowlabel { padding-top: 11px; }
 
-  /* a border only ever means: the code is here */
-  .col.here .tile { box-shadow: inset 0 -3px 0 var(--read); }
-  .col.read  .tile:not(.key) { border-color: var(--read);  background: rgba(74, 158, 218, .22); }
-  .col.write .tile:not(.key) { border-color: var(--write); background: rgba(224, 112, 90, .26); }
-  .col.enter { animation: rise .28s ease-out; }
-  .col.pulse .tile { animation: flash .45s ease-out; }
+  /* ---- a border only ever means: the code is here ---- */
+  .col.here .tile:not(.key) { box-shadow: inset 0 -3px 0 var(--read), 0 1px 2px rgba(0,0,0,.18); }
+  .col.read .tile:not(.key) {
+    border-color: var(--read);
+    background: color-mix(in srgb, var(--read) 24%, transparent);
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--read) 18%, transparent);
+  }
+  .col.write .tile:not(.key) {
+    border-color: var(--write);
+    background: color-mix(in srgb, var(--write) 26%, transparent);
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--write) 20%, transparent);
+  }
+  .col.enter { animation: rise .3s cubic-bezier(.2, .9, .3, 1.3); }
+  .col.pulse .tile { animation: flash .5s ease-out; }
 
-  /* plain values ride together, one row for all of them */
-  .strip { display: flex; gap: 7px; flex-wrap: wrap; }
+  /* ---- plain values: one strip of pills ---- */
+  .strip { display: flex; gap: 8px; flex-wrap: wrap; }
   .chip {
-    display: flex; align-items: baseline; gap: 8px;
-    padding: 7px 11px; border-radius: 5px;
-    background: var(--tile); border: 1px solid transparent;
+    display: flex; align-items: baseline; gap: 9px;
+    padding: 8px 13px; border-radius: 999px;
+    background: linear-gradient(var(--tile-edge), var(--tile));
+    border: 1px solid transparent;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, .15);
   }
   .chip .label { margin: 0; opacity: .5; }
-  .chip.hit { border-color: var(--read); }
-  .chip.pulse { animation: flash .45s ease-out; }
+  .chip .val { font-size: 15px; }
+  .chip.hit {
+    border-color: var(--read);
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--read) 16%, transparent);
+  }
+  .chip.pulse { animation: flash .5s ease-out; }
 
-  @keyframes rise  { from { transform: translateY(4px) scale(.94); opacity: 0 } }
-  @keyframes flash { from { background: rgba(224, 112, 90, .55) } }
+  @keyframes rise  { from { transform: translateY(5px) scale(.9); opacity: 0 } }
+  @keyframes flash { from { background: color-mix(in srgb, var(--write) 55%, transparent) } }
 
+  /* ---- nodes and arrows ---- */
   svg { overflow: visible; }
-  .node rect { fill: var(--tile); stroke: none; }
+  .node rect {
+    fill: var(--tile); stroke: var(--tile-edge);
+    filter: drop-shadow(0 1px 2px rgba(0, 0, 0, .2));
+  }
   .node text {
-    fill: var(--vscode-foreground); font-size: 11px; text-anchor: middle;
+    fill: var(--ink); font-size: 11px; text-anchor: middle;
     font-family: var(--vscode-editor-font-family);
   }
   .node text.big { font-size: 17px; }
-  .node.hit rect { fill: rgba(224, 112, 90, .26); stroke: var(--write); }
-  .node.enter { animation: rise .3s ease-out; transform-box: fill-box; transform-origin: center; }
-  .edge { stroke: var(--vscode-foreground); stroke-opacity: .45; }
-  .head { fill: var(--vscode-foreground); fill-opacity: .45; }
-  .elabel { fill: var(--vscode-foreground); fill-opacity: .45; font-size: 10px; text-anchor: middle; }
+  .node.hit rect {
+    fill: color-mix(in srgb, var(--write) 24%, transparent);
+    stroke: var(--write); stroke-width: 1.5;
+  }
+  .node.enter { animation: rise .32s ease-out; transform-box: fill-box; transform-origin: center; }
+  .edge { stroke: var(--ink); stroke-opacity: .4; }
+  .head { fill: var(--ink); fill-opacity: .4; }
+  .elabel { fill: var(--ink); fill-opacity: .45; font-size: 10px; text-anchor: middle; }
 
-  /* controls stay put while the diagram scrolls */
+  /* ---- transport, pinned while the diagram scrolls ---- */
   #bar {
-    position: sticky; bottom: 0; margin: 0 -18px; padding: 10px 18px 12px;
-    background: var(--vscode-editor-background); border-top: 1px solid var(--rule);
+    position: sticky; bottom: 0; margin: 0 -20px; padding: 12px 20px 14px;
+    background: color-mix(in srgb, var(--vscode-editor-background) 88%, transparent);
+    backdrop-filter: blur(6px);
+    border-top: 1px solid var(--rule);
   }
-  #controls { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+  #scrub { display: block; width: 100%; margin: 0 0 10px; accent-color: var(--read); }
+  #speed { accent-color: var(--read); width: 96px; }
+  input[type="range"] { height: 14px; cursor: pointer; }
+  #controls { display: flex; align-items: center; gap: 9px; flex-wrap: wrap; }
   button {
-    font: inherit; font-size: 12px; cursor: pointer; border: none; border-radius: 4px;
-    padding: 5px 11px;
-    background: var(--vscode-button-background); color: var(--vscode-button-foreground);
+    font: inherit; font-size: 12px; cursor: pointer;
+    border: 1px solid var(--rule); border-radius: 6px;
+    padding: 5px 12px;
+    background: var(--tile); color: var(--ink);
+    transition: background .12s, border-color .12s;
   }
-  button:hover { background: var(--vscode-button-hoverBackground); }
+  button:hover { background: color-mix(in srgb, var(--vscode-foreground) 16%, transparent); }
+  #play {
+    background: var(--vscode-button-background); color: var(--vscode-button-foreground);
+    border-color: transparent; min-width: 76px;
+  }
+  #play:hover { background: var(--vscode-button-hoverBackground); }
+  #mode { font-size: 10.5px; letter-spacing: .05em; text-transform: uppercase; }
   button:focus-visible, input:focus-visible { outline: 2px solid var(--read); outline-offset: 2px; }
-  #scrub { display: block; width: 100%; margin: 0 0 8px; }
-  #speed { width: 96px; }
-  #controls label { font-size: 10px; letter-spacing: .09em; text-transform: uppercase; opacity: .5; }
-  #status { display: flex; gap: 10px; margin-top: 8px; opacity: .6; flex-wrap: wrap; }
-  .step { opacity: .7; }
-  .tally { margin-left: auto; opacity: .8; }
-  .said { text-transform: none; letter-spacing: .02em; font-weight: 400; font-size: 11px; }
+  #controls label { opacity: .45; margin-left: auto; }
+  #status { display: flex; align-items: baseline; gap: 12px; margin-top: 9px; flex-wrap: wrap; }
+  .step { font-size: 11px; opacity: .55; }
+  .said {
+    text-transform: none; letter-spacing: .02em; font-weight: 400; font-size: 11.5px;
+    opacity: .75;
+  }
+  .tally { margin-left: auto; opacity: .6; font-size: 9.5px; }
 
-  @media (prefers-reduced-motion: reduce) { * { animation: none !important; } }
+  @media (prefers-reduced-motion: reduce) { * { animation: none !important; transition: none !important; } }
 </style>
 </head>
 <body>
@@ -270,6 +314,7 @@ function html(webview, extensionUri) {
     <input id="scrub" type="range" min="0" max="0" value="0" aria-label="Step">
     <div id="controls">
       <button id="play">▶ Play</button>
+      <button id="restart" title="Back to the start">⟲</button>
       <button id="prev" title="Previous step">◀</button>
       <button id="next" title="Next step">▶</button>
       <button id="mode" title="Step one memory access, or one whole line">By access</button>

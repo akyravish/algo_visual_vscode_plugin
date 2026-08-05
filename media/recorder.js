@@ -80,14 +80,25 @@ const pointsAtObjects = (o) =>
 const snap = (t) => {
   const raw = t.raw;
   if (t.scalar) {
-    // a short string is worth seeing as characters with indices
-    if (typeof raw === "string" && raw.length > 1 && raw.length <= 40)
+    // A string you scan gets characters with indices; a string you build stays a
+    // chip. Reassignment is the tell: fixed inputs are worth indexing, growing
+    // accumulators (and return values) are just values.
+    if (
+      typeof raw === "string" &&
+      raw.length > 1 &&
+      raw.length <= 40 &&
+      !t.mutated &&
+      t.name !== RETURNED
+    )
       return {
         at: null,
         kind: "string",
         cols: [...raw].map((ch, i) => ({ k: String(i), v: ch })),
       };
-    return { kind: "scalar", cols: [{ k: null, v: fmt(raw) }] };
+    let shown = fmt(raw);
+    if (typeof raw === "string")
+      shown = `"${raw.length > 24 ? raw.slice(0, 24) + "…" : raw}"`;
+    return { kind: "scalar", cols: [{ k: null, v: shown }] };
   }
   const at = t.at === undefined ? null : t.at; // the cell we are working on
   if (Array.isArray(raw)) {
@@ -260,7 +271,10 @@ function runRecorded(src) {
       (t) => t.name === name && t.scalar && t.depth === d,
     );
     if (seen && Object.is(seen.raw, value)) return value; // nothing changed, no step
-    if (seen) seen.raw = value;
+    if (seen) {
+      seen.raw = value;
+      seen.mutated = true; // a reassigned string is an accumulator, not an input
+    }
     else
       tracked.push({
         name,

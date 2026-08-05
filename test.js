@@ -379,6 +379,29 @@ const unparseable = runRecorded("const a = [1];\nconst b = [2;");
 assert.ok(unparseable.degraded);
 assert.strictEqual(unparseable.error.line, 2, "acorn knows where it gave up");
 
+// --- a scanned string is boxes; a built string is a chip --------------------
+const strings = runRecorded(`
+function encode(items, sep = "::") {
+  let out = ""
+  for (const item of items) {
+    out += item + sep
+  }
+  return out
+}
+encode(["ab", "cd"]);
+`);
+assert.ifError(strings.error);
+const encFrame = strings.frames.find((f) => f.op.type === "returns");
+const kinds = Object.fromEntries(encFrame.vars.map((v) => [v.name, v.kind]));
+assert.strictEqual(kinds.sep, "string", "a fixed input keeps its indexed boxes");
+assert.strictEqual(kinds.out, "scalar", "an accumulator collapses to a chip");
+assert.strictEqual(kinds["→"], "scalar", "a returned string is a chip, never boxes");
+assert.strictEqual(
+  encFrame.vars.find((v) => v.name === "out").cols[0].v,
+  '"ab::cd::"',
+  "string chips wear quotes"
+);
+
 // --- guards ----------------------------------------------------------------
 assert.ok(
   runRecorded("const a = visualize([1, 2]); while (true) a[0] = a[1];").capped,

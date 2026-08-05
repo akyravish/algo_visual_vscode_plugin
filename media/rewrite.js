@@ -102,6 +102,7 @@ function rewrite(src) {
       node.type === "ArrowFunctionExpression";
     if (isFn && node.body.type === "BlockStatement") {
       const params = node.params
+        .map((p) => (p.type === "AssignmentPattern" ? p.left : p)) // str = 'default'
         .filter((p) => p.type === "Identifier")
         .map((p) => p.name);
       const args = params.map((p) => `${p}: ${p}`).join(", ");
