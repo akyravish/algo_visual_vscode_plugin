@@ -12,7 +12,7 @@ let frames = [];
 let cur = 0;
 let timer = null;
 let sentLine = -1;
-let byLine = false;
+let mode = 0; // 0 = every access, 1 = one line per step, 2 = calls are one step
 let tally = [];
 
 const el = (cls, text) => {
@@ -297,6 +297,22 @@ function lineStep(from, d) {
   return i;
 }
 
+// One press = one line, and a call counts as one line: skip everything that
+// happens deeper on the stack than where you're standing.
+function overStep(from, d) {
+  const here = frames[from].stack.length;
+  let i = lineStep(from, d);
+  while (i !== from && frames[i].stack.length > here) {
+    const next = lineStep(i, d);
+    if (next === i) break;
+    i = next;
+  }
+  return i;
+}
+
+const advance = (from, d) =>
+  mode === 2 ? overStep(from, d) : mode === 1 ? lineStep(from, d) : from + d;
+
 // Each call gets its own slab, nested inside its caller: the stack, drawn as
 // containment. Inside a slab, plain values sit together in one strip at the top —
 // they are the cursors — and the structures they point into wrap below.
@@ -384,7 +400,7 @@ function play() {
   playBtn.textContent = "⏸ Pause";
   timer = setInterval(
     () => {
-      const next = byLine ? lineStep(cur, 1) : cur + 1;
+      const next = advance(cur, 1);
       if (next >= frames.length || next === cur) return stop();
       cur = next;
       render();
@@ -395,9 +411,7 @@ function play() {
 
 function step(d) {
   stop();
-  cur = byLine
-    ? lineStep(cur, d)
-    : Math.min(frames.length - 1, Math.max(0, cur + d));
+  cur = Math.min(frames.length - 1, Math.max(0, advance(cur, d)));
   render();
 }
 
@@ -464,8 +478,8 @@ restartBtn.onclick = () => {
   render();
 };
 modeBtn.onclick = () => {
-  byLine = !byLine;
-  modeBtn.textContent = byLine ? "By line" : "By access";
+  mode = (mode + 1) % 3;
+  modeBtn.textContent = ["By access", "By line", "Over calls"][mode];
   stop();
   render();
 };

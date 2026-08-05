@@ -1,8 +1,8 @@
 {
   "name": "algo-visual",
   "displayName": "Algo Visual",
-  "description": "Animate array/sorting algorithms from the active JavaScript file",
-  "version": "0.0.1",
+  "description": "Watch your JavaScript run \u2014 arrays, maps, objects, trees and every variable, animated step by step beside your code",
+  "version": "0.1.0",
   "publisher": "local",
   "private": true,
   "engines": {
@@ -19,8 +19,22 @@
     "commands": [
       {
         "command": "algoVisual.show",
-        "title": "Algo Visual: Show"
+        "title": "Algo Visual: Show",
+        "icon": "$(pulse)"
       }
-    ]
+    ],
+    "menus": {
+      "editor/title": [
+        {
+          "command": "algoVisual.show",
+          "when": "editorLangId == javascript",
+          "group": "navigation"
+        }
+      ]
+    }
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/akyravish/algo_visual_vscode_plugin.git"
   }
 }
