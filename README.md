@@ -32,8 +32,17 @@ code --uninstall-extension local.algo-visual
 
 Open this folder in VS Code and press `F5`. That launches an Extension
 Development Host window running the extension straight from source — edits show
-up on the next reload (`Ctrl+R`) with no packaging step. Try it on `example.js`,
-`example-sort.js` or `example-tree.js`.
+up on the next reload (`Ctrl+R`) with no packaging step. There is one example
+per shape to try it on:
+
+| File               | What it draws                                           |
+| ------------------ | ------------------------------------------------------- |
+| `example.js`       | strings and a growing array                             |
+| `example-sort.js`  | bubble sort over one array                              |
+| `example-tree.js`  | a binary search tree, as nodes and arrows               |
+| `example-graph.js` | BFS over an adjacency `Map`, with queue and visited set |
+| `example-hash.js`  | two sum: O(n²) loops, then the same answer via a `Map`  |
+| `example-heap.js`  | a min-heap sifting up and down inside a flat array      |
 
 ## Using it
 

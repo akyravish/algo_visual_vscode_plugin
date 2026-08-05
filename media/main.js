@@ -88,14 +88,25 @@ function chip(v, prevVar, ops) {
 }
 
 // Nodes and arrows: linked lists, trees, graphs.
-// ponytail: rows are laid out by BFS depth and packed left to right. No tidy-tree
-// algorithm — wide trees drift out of line. Good enough to read; fix if it bugs you.
+// Children sit under their parent, and a parent sits centred over its children,
+// so a binary tree looks like the picture in the book.
 function nodeGraph(v, before, ops) {
-  const NW = 88;
-  const NH = 46;
-  const GX = 34;
-  const GY = 54;
+  const text = (n, f) => (n.fields.length === 1 ? f.v : `${f.k}: ${f.v}`);
+  const rows = Math.max(1, ...v.nodes.map((n) => Math.min(3, n.fields.length)));
+  const chars = Math.max(
+    2,
+    ...v.nodes.flatMap((n) =>
+      n.fields.slice(0, 3).map((f) => text(n, f).length),
+    ),
+  );
+  const NW = Math.max(54, chars * 8 + 22); // wide enough for the longest field
+  const NH = rows === 1 ? 40 : 16 + rows * 15;
+  const GX = 26;
+  const GY = 52;
+
+  // one parent per node (first one BFS reaches), which turns any graph into a tree
   const depth = new Array(v.nodes.length).fill(0);
+  const kids = v.nodes.map(() => []);
   const out = new Map();
   for (const e of v.edges) out.set(e.from, (out.get(e.from) || 0) + 1);
 
@@ -106,20 +117,28 @@ function nodeGraph(v, before, ops) {
       if (e.from === id && !seen.has(e.to)) {
         seen.add(e.to);
         depth[e.to] = depth[id] + 1;
+        kids[id].push(e.to);
         q.push(e.to);
       }
   }
 
+  // leaves take the next free column; every parent centres over its own children
+  const col = new Array(v.nodes.length).fill(0);
+  let free = 0;
+  const place = (id) => {
+    if (!kids[id].length) return (col[id] = free++);
+    kids[id].forEach(place);
+    col[id] = (col[kids[id][0]] + col[kids[id][kids[id].length - 1]]) / 2;
+  };
+  if (v.nodes.length) place(0);
+  v.nodes.forEach((_, i) => seen.has(i) || (col[i] = free++)); // unreachable: own column
+
   const chain = [...out.values()].every((c) => c <= 1);
-  const used = new Map();
-  const pos = v.nodes.map((_, i) => {
-    const d = depth[i];
-    const n = used.get(d) || 0;
-    used.set(d, n + 1);
-    return chain
-      ? { x: d * (NW + GX), y: 0 }
-      : { x: n * (NW + GX), y: d * (NH + GY) };
-  });
+  const pos = v.nodes.map((_, i) =>
+    chain
+      ? { x: depth[i] * (NW + GX), y: 0 }
+      : { x: col[i] * (NW + GX), y: depth[i] * (NH + GY) },
+  );
 
   const w = Math.max(...pos.map((p) => p.x)) + NW + 2;
   const h = Math.max(...pos.map((p) => p.y)) + NH + 2;
@@ -150,18 +169,23 @@ function nodeGraph(v, before, ops) {
       y2: horizontal ? b.y + NH / 2 : b.y - 4,
     });
     root.appendChild(line);
-    if (!chain)
+    if (!chain) {
+      // beside the middle of its own arrow, pushed off at a right angle to it
+      const dx = b.x - a.x;
+      const dy = b.y - a.y - NH;
+      const len = Math.hypot(dx, dy) || 1;
       root.appendChild(
         svg(
           "text",
           {
             class: "elabel",
-            x: (a.x + b.x) / 2 + NW / 2,
-            y: (a.y + b.y) / 2 + NH,
+            x: (a.x + b.x) / 2 + NW / 2 - (dy / len) * 12,
+            y: (a.y + NH + b.y) / 2 + (dx / len) * 12 + 4,
           },
           e.label,
         ),
       );
+    }
   }
 
   // the nodes this line touched: longest path that prefixes each key
@@ -187,17 +211,19 @@ function nodeGraph(v, before, ops) {
     g.appendChild(
       svg("rect", { x: p.x, y: p.y, width: NW, height: NH, rx: 6 }),
     );
-    const one = n.fields.length === 1;
-    n.fields.slice(0, 3).forEach((f, i) => {
+    const shown = n.fields.slice(0, 3);
+    const one = shown.length === 1;
+    const top = p.y + (NH - shown.length * 15) / 2 + 12;
+    shown.forEach((f, i) => {
       g.appendChild(
         svg(
           "text",
           {
             x: p.x + NW / 2,
-            y: p.y + (one ? NH / 2 + 6 : 17 + i * 14),
+            y: one ? p.y + NH / 2 + 6 : top + i * 15,
             class: one ? "big" : "",
           },
-          one ? f.v : `${f.k}: ${f.v}`,
+          text(n, f),
         ),
       );
     });
@@ -342,9 +368,6 @@ function render() {
     else structs.appendChild(block(v, was, ops));
   }
 
-  slabs.forEach((sl, i) => {
-    if (i < slabs.length - 1) sl.className += " dim"; // only the live frame is lit
-  });
   stage.replaceChildren(...slabs);
 
   const inside = f.stack.length > 1 && !["call", "return"].includes(f.op.type);
@@ -467,7 +490,10 @@ function load(code) {
   if (failure) say(`Line ${failure.line}: ${failure.message}`, true);
   if (result.capped) say("Stopped early — is there an endless loop?", true);
   if (result.degraded)
-    say("Couldn't rewrite this file safely, so plain values aren't tracked.", true);
+    say(
+      "Couldn't rewrite this file safely, so plain values aren't tracked.",
+      true,
+    );
 }
 
 playBtn.onclick = play;

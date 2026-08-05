@@ -59,7 +59,8 @@ const graph = (root) => {
     for (const [k, v] of Object.entries(o)) {
       if (isObj(v) && !(v instanceof Map) && !(v instanceof Set))
         links.push([k, v]);
-      else fields.push({ k, v: fmt(v) });
+      // a null field is an arrow that isn't there — the missing arrow already says so
+      else if (v !== null) fields.push({ k, v: fmt(v) });
     }
     for (const [k, v] of links) {
       const to = visit(v, `${path}${k}.`);
@@ -278,7 +279,12 @@ function runRecorded(src) {
 
   // every condition, and how it came out
   const tested = (value, text) => {
-    push({ name: text, type: "test", key: null, value: value ? "true" : "false" });
+    push({
+      name: text,
+      type: "test",
+      key: null,
+      value: value ? "true" : "false",
+    });
     return value;
   };
 
@@ -291,9 +297,21 @@ function runRecorded(src) {
     if (!isObj(value)) {
       const seen = tracked.find((t) => t.name === RETURNED && t.depth === d);
       if (seen) seen.raw = value;
-      else tracked.push({ name: RETURNED, raw: value, scalar: true, depth: d, fn });
+      else
+        tracked.push({
+          name: RETURNED,
+          raw: value,
+          scalar: true,
+          depth: d,
+          fn,
+        });
     }
-    push({ name: fn, type: "returns", key: null, value: known ? known.name : fmt(value) });
+    push({
+      name: fn,
+      type: "returns",
+      key: null,
+      value: known ? known.name : fmt(value),
+    });
     return returned;
   };
 

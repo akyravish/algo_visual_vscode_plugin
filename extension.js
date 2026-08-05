@@ -23,7 +23,11 @@ const failed = vscode.window.createTextEditorDecorationType({
   borderWidth: "0 0 0 3px",
   borderStyle: "solid",
   borderColor: "rgba(224, 112, 90, 0.9)",
-  after: { color: "rgba(230, 150, 130, 0.95)", fontStyle: "italic", margin: "0 0 0 2em" },
+  after: {
+    color: "rgba(230, 150, 130, 0.95)",
+    fontStyle: "italic",
+    margin: "0 0 0 2em",
+  },
 });
 
 const sourceEditor = () =>
@@ -59,7 +63,8 @@ function showError(err) {
         ]
       : [],
   );
-  if (err && !known) vscode.window.showErrorMessage(`Algo Visual: ${err.message}`);
+  if (err && !known)
+    vscode.window.showErrorMessage(`Algo Visual: ${err.message}`);
 }
 
 function activate(context) {
@@ -155,8 +160,8 @@ function html(webview, extensionUri) {
   }
 
   .label, .fname, .idx, .rowlabel, #status, #controls label {
-    font-size: 9.5px; font-weight: 650;
-    letter-spacing: .11em; text-transform: uppercase;
+    font-size: 11.5px; font-weight: 650;
+    letter-spacing: .09em; text-transform: uppercase;
   }
   .tile, .val, .step {
     font-family: var(--vscode-editor-font-family);
@@ -172,7 +177,6 @@ function html(webview, extensionUri) {
     background: var(--slab);
     border-radius: 4px 10px 10px 4px;
   }
-  .slab.dim { opacity: .38; filter: saturate(.6); transition: opacity .25s, filter .25s; }
   .fname { color: var(--ok); letter-spacing: .14em; }
   .fname::before { content: "▸ "; opacity: .7; }
 
@@ -182,7 +186,7 @@ function html(webview, extensionUri) {
   }
   .structs:empty, .strip:empty { display: none; }
   .block.enter, .chip.enter { animation: rise .3s cubic-bezier(.2, .9, .3, 1.3); }
-  .label { opacity: .5; margin-bottom: 7px; }
+  .label { opacity: .62; margin-bottom: 7px; }
 
   /* ---- cells ---- */
   .row { display: flex; gap: 5px; flex-wrap: wrap; align-items: flex-start; }
@@ -194,7 +198,7 @@ function html(webview, extensionUri) {
     border: 1px solid transparent; border-radius: 7px;
     box-shadow: 0 1px 2px rgba(0, 0, 0, .18);
   }
-  .idx { text-align: center; opacity: .38; padding-top: 5px; letter-spacing: .06em; }
+  .idx { text-align: center; opacity: .55; padding-top: 5px; letter-spacing: .05em; }
 
   /* map and object: the key sits on its value, one object in two halves */
   .pair .tile:first-child {
@@ -204,7 +208,7 @@ function html(webview, extensionUri) {
   }
   .pair .tile:last-child { border-radius: 0 0 7px 7px; margin-top: 1px; }
 
-  .rowlabel { min-width: 18px; padding: 15px 7px 0 0; text-align: right; opacity: .38; }
+  .rowlabel { min-width: 22px; padding: 15px 7px 0 0; text-align: right; opacity: .55; }
   .void {
     min-width: 46px; height: 41px;
     border: 1.5px dashed var(--rule); border-radius: 7px; opacity: .45;
@@ -239,8 +243,8 @@ function html(webview, extensionUri) {
     border: 1px solid transparent;
     box-shadow: 0 1px 2px rgba(0, 0, 0, .15);
   }
-  .chip .label { margin: 0; opacity: .5; }
-  .chip .val { font-size: 15px; }
+  .chip .label { margin: 0; opacity: .62; }
+  .chip .val { font-size: 16px; }
   .chip.hit {
     border-color: var(--read);
     box-shadow: 0 0 0 3px color-mix(in srgb, var(--read) 16%, transparent);
@@ -253,11 +257,11 @@ function html(webview, extensionUri) {
   /* ---- nodes and arrows ---- */
   svg { overflow: visible; }
   .node rect {
-    fill: var(--tile); stroke: var(--tile-edge);
+    fill: var(--tile); stroke: var(--rule);
     filter: drop-shadow(0 1px 2px rgba(0, 0, 0, .2));
   }
   .node text {
-    fill: var(--ink); font-size: 11px; text-anchor: middle;
+    fill: var(--ink); font-size: 12.5px; text-anchor: middle;
     font-family: var(--vscode-editor-font-family);
   }
   .node text.big { font-size: 17px; }
@@ -266,9 +270,9 @@ function html(webview, extensionUri) {
     stroke: var(--write); stroke-width: 1.5;
   }
   .node.enter { animation: rise .32s ease-out; transform-box: fill-box; transform-origin: center; }
-  .edge { stroke: var(--ink); stroke-opacity: .4; }
-  .head { fill: var(--ink); fill-opacity: .4; }
-  .elabel { fill: var(--ink); fill-opacity: .45; font-size: 10px; text-anchor: middle; }
+  .edge { stroke: var(--ink); stroke-opacity: .6; }
+  .head { fill: var(--ink); fill-opacity: .6; }
+  .elabel { fill: var(--ink); fill-opacity: .7; font-size: 11px; text-anchor: middle; }
 
   /* ---- transport, pinned while the diagram scrolls ---- */
   #bar {
@@ -294,16 +298,16 @@ function html(webview, extensionUri) {
     border-color: transparent; min-width: 76px;
   }
   #play:hover { background: var(--vscode-button-hoverBackground); }
-  #mode { font-size: 10.5px; letter-spacing: .05em; text-transform: uppercase; }
+  #mode { font-size: 11px; letter-spacing: .04em; text-transform: uppercase; }
   button:focus-visible, input:focus-visible { outline: 2px solid var(--read); outline-offset: 2px; }
-  #controls label { opacity: .45; margin-left: auto; }
+  #controls label { opacity: .6; margin-left: auto; }
   #status { display: flex; align-items: baseline; gap: 12px; margin-top: 9px; flex-wrap: wrap; }
-  .step { font-size: 11px; opacity: .55; }
+  .step { font-size: 12px; opacity: .7; }
   .said {
-    text-transform: none; letter-spacing: .02em; font-weight: 400; font-size: 11.5px;
-    opacity: .75;
+    text-transform: none; letter-spacing: .02em; font-weight: 400; font-size: 12.5px;
+    opacity: .88;
   }
-  .tally { margin-left: auto; opacity: .6; font-size: 9.5px; }
+  .tally { margin-left: auto; opacity: .7; font-size: 11px; }
 
   @media (prefers-reduced-motion: reduce) { * { animation: none !important; transition: none !important; } }
 </style>
