@@ -67,8 +67,7 @@ function column(c, kind, before, ops, name, at) {
   const col = el(cls + (paired ? " pair" : ""));
   col.appendChild(el("tile" + (paired ? " key" : ""), paired ? c.k : c.v));
   if (paired) col.appendChild(el("tile", c.v));
-  else if (kind === "array" || kind === "string")
-    col.appendChild(el("idx", c.k));
+  else if (kind === "array") col.appendChild(el("idx", c.k));
   return col;
 }
 

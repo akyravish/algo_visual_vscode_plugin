@@ -6,11 +6,34 @@ in your editor.
 
 Built for working through data-structures and algorithms problems.
 
-## Running it
+## Install
 
-Open this folder in VS Code and press `F5`. In the window that opens, open
-`example.js` (or `example-sort.js`, `example-tree.js`) and run
-**Algo Visual: Show** from the command palette. Save the file to re-run.
+Build a `.vsix` package and install it into VS Code:
+
+```sh
+npx @vscode/vsce package
+code --install-extension algo-visual-0.1.0.vsix
+```
+
+Reload the VS Code window afterwards (`Developer: Reload Window`). The extension
+then works in every window — open a `.js` file and click the pulse icon in the
+editor title bar, or run **Algo Visual: Show** from the command palette.
+
+After changing the extension's source, repeat both commands to update the
+installed copy — it is a snapshot, not a live link to this folder.
+
+To uninstall:
+
+```sh
+code --uninstall-extension local.algo-visual
+```
+
+## Developing it
+
+Open this folder in VS Code and press `F5`. That launches an Extension
+Development Host window running the extension straight from source — edits show
+up on the next reload (`Ctrl+R`) with no packaging step. Try it on `example.js`,
+`example-sort.js` or `example-tree.js`.
 
 ## Using it
 
@@ -31,7 +54,8 @@ for (let i = 0; i < nums.length; i++) {
 ```
 
 Every declared array, object, `Map` and `Set` is tracked automatically, along
-with plain values, loop counters and function parameters.
+with plain values, strings, loop counters and function parameters. Save the
+file to re-run; playback holds its place across saves.
 
 Watching only one thing? Wrap it yourself — one explicit call switches the
 automatic tracking off entirely:
@@ -48,16 +72,17 @@ const nums = visualize([5, 3, 8, 1]);
 | Nested arrays               | a grid, or a strip of slots when each row holds one item       |
 | Maps, Sets, objects         | key tile sitting on its value tile                             |
 | Objects pointing at objects | nodes and arrows — linked lists, trees, graphs                 |
-| Strings                     | characters with indices                                        |
-| Plain values                | chips, grouped in one strip per call                           |
+| Plain values and strings    | chips, grouped in one strip per call                           |
 | Calls                       | an indented slab per frame, so recursion nests visibly         |
 | Returns                     | a `→` chip holding what the call handed back                   |
 | Conditions                  | `arr[j] > arr[j + 1] → true`, in the panel and beside the line |
+| Errors                      | the failing line marked red in the editor, with the message    |
 | Work done                   | a running tally of reads, writes, comparisons and calls        |
 
-Playback runs one memory access at a time, or one whole line — the **By access /
-By line** button switches. Click any line in your editor to jump the timeline to
-the first step that ran it. Arrow keys step, space plays.
+Playback has three granularities — the mode button cycles **By access** (one
+memory operation per step), **By line**, and **Over calls** (a whole function
+call is one step). `⟲` restarts. Click any line in your editor to jump the
+timeline to the first step that ran it. Arrow keys step, space plays.
 
 ## How it works
 

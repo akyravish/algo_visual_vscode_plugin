@@ -317,20 +317,10 @@ assert.deepStrictEqual(
   "only real decisions are steps — the for-header is not one"
 );
 
-// --- a short string is characters with indices ----------------------------
+// --- strings are chips, never boxes ----------------------------------------
 const word = runRecorded('const word = "abc";\nword.length;');
-const ws = word.frames.at(-1).vars[0];
-assert.strictEqual(ws.kind, "string");
-assert.deepStrictEqual(ws.cols, [
-  { k: "0", v: "a" },
-  { k: "1", v: "b" },
-  { k: "2", v: "c" },
-]);
-assert.strictEqual(
-  runRecorded('const c = "x";').frames.at(-1).vars[0].kind,
-  "scalar",
-  "a single character stays a plain value"
-);
+assert.strictEqual(word.frames.at(-1).vars[0].kind, "scalar");
+assert.strictEqual(word.frames.at(-1).vars[0].cols[0].v, '"abc"');
 
 // --- the work counter matches the textbook -------------------------------
 const nine = runRecorded(
@@ -379,7 +369,7 @@ const unparseable = runRecorded("const a = [1];\nconst b = [2;");
 assert.ok(unparseable.degraded);
 assert.strictEqual(unparseable.error.line, 2, "acorn knows where it gave up");
 
-// --- a scanned string is boxes; a built string is a chip --------------------
+// --- every string, scanned or built, is a quoted chip -----------------------
 const strings = runRecorded(`
 function encode(items, sep = "::") {
   let out = ""
@@ -393,7 +383,7 @@ encode(["ab", "cd"]);
 assert.ifError(strings.error);
 const encFrame = strings.frames.find((f) => f.op.type === "returns");
 const kinds = Object.fromEntries(encFrame.vars.map((v) => [v.name, v.kind]));
-assert.strictEqual(kinds.sep, "string", "a fixed input keeps its indexed boxes");
+assert.strictEqual(kinds.sep, "scalar", "even a fixed input stays a chip");
 assert.strictEqual(kinds.out, "scalar", "an accumulator collapses to a chip");
 assert.strictEqual(kinds["→"], "scalar", "a returned string is a chip, never boxes");
 assert.strictEqual(
